@@ -5,10 +5,8 @@
 #include "queue.h"
 
 // Global private variables for the queue
-//all static so that their modifications dont get destroyed after return
-//also, a global static limits visibility to this specific file (important for encapsulation)
 static struct element* elements = NULL;
-static int size = 0; 
+static int size = 0;
 static int head = 0;
 static int tail = 0;
 static int count = 0;

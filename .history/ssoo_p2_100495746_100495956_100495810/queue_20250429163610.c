@@ -6,7 +6,7 @@
 
 // Global private variables for the queue
 //all static so that their modifications dont get destroyed after return
-//also, a global static limits visibility to this specific file (important for encapsulation)
+//also, a global static limits visibility to this specific file
 static struct element* elements = NULL;
 static int size = 0; 
 static int head = 0;

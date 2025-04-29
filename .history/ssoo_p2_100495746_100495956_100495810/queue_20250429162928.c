@@ -5,10 +5,8 @@
 #include "queue.h"
 
 // Global private variables for the queue
-//all static so that their modifications dont get destroyed after return
-//also, a global static limits visibility to this specific file (important for encapsulation)
 static struct element* elements = NULL;
-static int size = 0; 
+static int size = 0;
 static int head = 0;
 static int tail = 0;
 static int count = 0;
@@ -19,8 +17,8 @@ static pthread_cond_t not_empty;
 
 
 //To create a queue
-int queue_init(int size_param){
-	elements = malloc(size_param * sizeof(struct element)); // alocate memory of "size" (quantity of) elements
+int queue_init(int size){
+	elements = malloc(size * sizeof(struct element)); // alocate memory of "size" (quantity of) elements
 	if (elements == NULL){
 		printf("Error alocating memory\n");
 		return -1;
@@ -38,7 +36,7 @@ int queue_init(int size_param){
 // To Enqueue an element
 int queue_put(struct element* x) {
 	pthread_mutex_lock(&mutex); // lock for race conditions
-	while (queue_full()){
+	while (queue_full){
 		pthread_cond_wait(&not_full, &mutex);
 	}
 	elements[tail] = *x;

@@ -5,10 +5,8 @@
 #include "queue.h"
 
 // Global private variables for the queue
-//all static so that their modifications dont get destroyed after return
-//also, a global static limits visibility to this specific file (important for encapsulation)
 static struct element* elements = NULL;
-static int size = 0; 
+static int size = 0;
 static int head = 0;
 static int tail = 0;
 static int count = 0;
@@ -19,8 +17,8 @@ static pthread_cond_t not_empty;
 
 
 //To create a queue
-int queue_init(int size_param){
-	elements = malloc(size_param * sizeof(struct element)); // alocate memory of "size" (quantity of) elements
+int queue_init(int size){
+	elements = malloc(size * sizeof(struct element)); // alocate memory of "size" (quantity of) elements
 	if (elements == NULL){
 		printf("Error alocating memory\n");
 		return -1;
@@ -38,7 +36,7 @@ int queue_init(int size_param){
 // To Enqueue an element
 int queue_put(struct element* x) {
 	pthread_mutex_lock(&mutex); // lock for race conditions
-	while (queue_full()){
+	while (count == size){
 		pthread_cond_wait(&not_full, &mutex);
 	}
 	elements[tail] = *x;
@@ -54,27 +52,24 @@ int queue_put(struct element* x) {
 // To Dequeue an element.
 struct element* queue_get(void) {
 	pthread_mutex_lock(&mutex);
-	
-	while (queue_empty()){
+	while (count==0){
 		pthread_cond_wait(&not_empty, &mutex);
 	}
-	struct element *consumed = &elements[head]; //save the address! as this will change with count etc
-	head = (head+1)%size;
-	pthread_cond_signal(&not_full);
-	pthread_mutex_unlock(&mutex);
+	elements[head] = NULL; //?? how do i "eliminate" it
+	count--;
+	
 
-	return consumed;
+	return NULL;
 }
 
 
 //To check queue state
 int queue_empty(void){
-	// no need to lock them, they are already called within a locked function
-	return count==0;
+	return 0;
 }
 
 int queue_full(void){
-	return count==size;
+	return 0;
 }
 
 //To destroy the queue and free the resources

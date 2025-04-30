@@ -15,46 +15,25 @@
 
 #define NUM_THREADS 2
 
-struct thread_args{
-		int belt_id;
-		int to_produce;
-		int is_producer;
-	};
 
 //Thread function
-/*void *PrintHello(void *threadid)
+void *PrintHello(void *threadid)
 {
    	long tid;
    	tid = (long)threadid;
    	printf("Hello World! It's me, thread #%ld!\n", tid);
 	printf("Thread #%ld ends\n", tid);
    	pthread_exit(0);
-}*/
+}
 
-void *Produce(void *arg){
-	struct thread_args *args = (struct thread_args*) arg;
-	for (int i = 0; i < args->to_produce; i++) {
-		struct element elem;
-		elem.num_edition = i;
-		elem.id_belt = args->belt_id;
-		elem.last = (i == args->to_produce - 1) ? 1 : 0; // last if there are no more
-		queue_put(&elem);
-	}
-	free(arg); 
+void *Produce(void *threadid){
+
 	pthread_exit(NULL);
 
 }
 
-void *Consume(void *arg){
-	struct thread_args *args = (struct thread_args*) arg;
-	for (int i = 0; i < args->to_produce; i++) {
-		struct element* elem = queue_get();
-		printf("[OK][queue] Obtained element with id %d in belt %d.\n", 
-			elem->num_edition, elem->id_belt);
+void *Consume(void *threadid){
 
-	}
-
-	free(arg);
 	pthread_exit(NULL);
 }
 
@@ -66,28 +45,24 @@ int process_manager (int id, int belt_size, int items_to_produce ){
 	
 
 	//using the definded struct/function in queue.c
-	//struct element * elemento = NULL;
+	struct element * elemento = NULL;
 	//queue_empty();	
-	
-	struct thread_args *prod_args = malloc(sizeof(struct thread_args));
-	prod_args->belt_id = id;
-	prod_args->to_produce = items_to_produce;
-	prod_args->is_producer = 1;
-
-	struct thread_args *cons_args = malloc(sizeof(struct thread_args));
-	cons_args->belt_id = id;
-	cons_args->to_produce = items_to_produce;
-	cons_args->is_producer = 0;
-	
-
+	struct thread_args{
+		int belt_id;
+		int to_produce;
+		int is_producer;
+	};
+	struct thread_args prod_arguments = {id, items_to_produce, 1};
+	struct thread_args cons_arguments = {id, items_to_produce, 0};
 
 	queue_init(belt_size);
 
-	pthread_create(&threads[0],NULL, Produce, prod_args);
-	pthread_create(&threads[1],NULL, Consume, cons_args);
+
+
+	pthread_create(&threads[0],NULL, *Produce, &prod_arguments);
+	pthread_create(&threads[1],NULL, *Consume, &cons_arguments);
 	pthread_join(threads[0], NULL);
 	pthread_join(threads[1], NULL);
-	queue_destroy();
 	
 
 	//printf("Hello! I am the process manager and I have %d minions.\n", NUM_THREADS);
@@ -113,4 +88,5 @@ int process_manager (int id, int belt_size, int items_to_produce ){
 
    	/* Last thing that main() should do */
    	return(0);
+	
 }

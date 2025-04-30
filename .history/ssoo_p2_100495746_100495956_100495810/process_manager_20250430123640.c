@@ -37,7 +37,7 @@ void *Produce(void *arg){
 		struct element elem;
 		elem.num_edition = i;
 		elem.id_belt = args->belt_id;
-		elem.last = (i == args->to_produce - 1) ? 1 : 0; // last if there are no more
+		elem.last = (i == args->to_produce - 1) ? 1 : 0;
 		queue_put(&elem);
 	}
 	free(arg); 

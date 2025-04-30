@@ -29,7 +29,7 @@ struct thread_args{
    	printf("Hello World! It's me, thread #%ld!\n", tid);
 	printf("Thread #%ld ends\n", tid);
    	pthread_exit(0);
-}*/
+}
 
 void *Produce(void *arg){
 	struct thread_args *args = (struct thread_args*) arg;
@@ -37,10 +37,11 @@ void *Produce(void *arg){
 		struct element elem;
 		elem.num_edition = i;
 		elem.id_belt = args->belt_id;
-		elem.last = (i == args->to_produce - 1) ? 1 : 0; // last if there are no more
+		elem.last = (i == args->to_produce - 1) ? 1 : 0;
 		queue_put(&elem);
 	}
-	free(arg); 
+
+	free(arg);
 	pthread_exit(NULL);
 
 }

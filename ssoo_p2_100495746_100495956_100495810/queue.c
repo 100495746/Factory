@@ -21,7 +21,7 @@ static pthread_cond_t not_empty;
 int queue_init(int size_param){
 	elements = malloc(size_param * sizeof(struct element)); // alocate memory of "size" (quantity of) elements
 	if (elements == NULL){
-		printf("Error alocating memory\n");
+		fprintf(stderr,"[ERROR][queue] There ws an error while using queue");
 		return -1;
 	}
 	head=tail=count =0;
@@ -33,6 +33,13 @@ int queue_init(int size_param){
 	return 0;
 }
 
+/*
+struct element {
+  int num_edition;
+  int id_belt;
+  int last;
+};
+*/
 
 // To Enqueue an element
 int queue_put(struct element* x) {
@@ -44,6 +51,7 @@ int queue_put(struct element* x) {
 	count++;
 	tail = (tail+1)%size;
 	pthread_cond_signal(&not_empty); // no longer empty
+	printf("[OK][queue] Introduced element with id %d in belt %d", x->num_edition, x->id_belt);
 	pthread_mutex_unlock(&mutex);
 
 	return 0;
@@ -53,13 +61,14 @@ int queue_put(struct element* x) {
 // To Dequeue an element.
 struct element* queue_get(void) {
 	pthread_mutex_lock(&mutex);
-	
 	while (queue_empty()){
 		pthread_cond_wait(&not_empty, &mutex);
 	}
 	struct element *consumed = &elements[head]; //save the address! as this will change with count etc
 	head = (head+1)%size;
 	pthread_cond_signal(&not_full);
+	printf("[OK][queue] Obtained element with id %d in belt %d", consumed->num_edition, consumed->id_belt);
+
 	pthread_mutex_unlock(&mutex);
 
 	return consumed;

@@ -3,7 +3,7 @@
  * factory_manager.c
  *
  */
-
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -23,11 +23,6 @@ Which means:
         Belt 1 → size 2 → 3 items
         Belt 3 → size 5 → 2 items
 */
-struct thread_args{
-		sem_t* semaphore;
-		struct belt_info belt;
-
-	};
 
 struct belt_info {
 	int id;
@@ -35,13 +30,26 @@ struct belt_info {
 	int items;
 };
 
+struct th_args_fm{
+		sem_t* semaphore;
+		struct belt_info belt;
+
+	};
+
+
 void *belt_wrapper(void *arg){
 	// prepares the arguments for process_manager and handles semaphores
 
-	struct  thread_args *args = (struct thread_args*) arg;
+	struct  th_args_fm *args = (struct th_args_fm*) arg;
 	// we make sure only a mximum number may enter at a time
+	
 	sem_wait(args->semaphore);
-	process_manager(args->belt.id, args->belt.size, args->belt.items);
+	int result;
+	result = process_manager(args->belt.id, args->belt.size, args->belt.items);
+	if (result!=0){
+		fprintf(stderr, "[ERROR][factory_manager] Process with id %d has finished with errors\n",args->belt.id );
+	}
+	printf("[OK][factory_manager] process_manager with id %d has been created\n", args->belt.id);
 	sem_post(args->semaphore);
 	free(arg);
 	return NULL;
@@ -86,22 +94,25 @@ int main (int argc, const char * argv[] ){
 	//sem_wait(&semaphore)-->decreases sem by 1
 	//sem_post(&semaphore) --> increases sem by 1
 	// sem_destroy(&semaphore) --> after all use of semaphore is done
-	sem_t* semaphore;
+	sem_t semaphore;
 	sem_init(&semaphore, 0, max_concurrent);
 	pthread_t threads[count];
 	
 	for (int i =0; i<count; i++){
-		struct thread_args* args = malloc(sizeof(struct thread_args));
+		struct th_args_fm* args = malloc(sizeof(struct th_args_fm));
 		// each belt, one thread, but same semaphore
 		args->belt = old_belts[i];
-		args->semaphore = semaphore;
+		args->semaphore = &semaphore;
 		pthread_create(&threads[i], NULL, belt_wrapper, args);
 	}
-	free(old_belts);
+	
 	for (int i =0; i<count; i++){
 		pthread_join(threads[i],NULL );
+		printf("[OK][factory_manager] process_manager with id %d has finished\n", old_belts[i].id);
 	}
+	free(old_belts);
 	sem_destroy(&semaphore);
+	printf("[OK][factory_manager] Finishing\n");
 
 	return 0;
 }

@@ -15,7 +15,7 @@
 
 #define NUM_THREADS 2
 
-struct thread_args{
+struct th_args_pm{
 		int belt_id;
 		int to_produce;
 		int is_producer;
@@ -32,7 +32,7 @@ struct thread_args{
 }*/
 
 void *Produce(void *arg){
-	struct thread_args *args = (struct thread_args*) arg;
+	struct th_args_pm *args = (struct th_args_pm*) arg;
 	for (int i = 0; i < args->to_produce; i++) {
 		struct element elem;
 		elem.num_edition = i;
@@ -46,12 +46,10 @@ void *Produce(void *arg){
 }
 
 void *Consume(void *arg){
-	struct thread_args *args = (struct thread_args*) arg;
+	struct th_args_pm *args = (struct th_args_pm*) arg;
 	for (int i = 0; i < args->to_produce; i++) {
-		struct element* elem = queue_get();
-		printf("[OK][queue] Obtained element with id %d in belt %d.\n", 
-			elem->num_edition, elem->id_belt);
-
+		//struct element* elem = queue_get();
+		queue_get();
 	}
 
 	free(arg);
@@ -61,40 +59,52 @@ void *Consume(void *arg){
 
 int process_manager (int id, int belt_size, int items_to_produce ){
 	pthread_t threads[NUM_THREADS]; //1 prod, 1 cons
-   	int rc; // return code of thread creation (if not 0, smth is wrong)
-   	long t; // numbers the thread (thread id)
+   	//long t; // numbers the thread (thread id)
+	if (id <= 0 || belt_size <= 0 || items_to_produce <= 0) {
+		fprintf(stderr, "[ERROR][process_manager] Arguments not valid with id %d\n", id);
+		return -1;
+	}
+
 	
 
 	//using the definded struct/function in queue.c
 	//struct element * elemento = NULL;
 	//queue_empty();	
 	
-	struct thread_args *prod_args = malloc(sizeof(struct thread_args));
+	struct th_args_pm *prod_args = malloc(sizeof(struct th_args_pm));
 	if(prod_args == NULL){
-		printf("Memory allocation failed");
+		fprintf(stderr,"[ERROR][process_manager] There was an error executing process manager with id %d\n", id);
 		return -1;
 	}
+	printf("[OK][process_manager] Process with id %d waiting to produce %d elements\n", id, items_to_produce);
 	prod_args->belt_id = id;
 	prod_args->to_produce = items_to_produce;
 	prod_args->is_producer = 1;
 
-	struct thread_args *cons_args = malloc(sizeof(struct thread_args));
+	struct th_args_pm *cons_args = malloc(sizeof(struct th_args_pm));
 	if(cons_args == NULL){
-		printf("Memory allocation failed");
+		fprintf(stderr,"[ERROR][process_manager] There was an error executing process manager with id %d\n", id);
 		return -1;
 	}
 	cons_args->belt_id = id;
 	cons_args->to_produce = items_to_produce;
 	cons_args->is_producer = 0;
-	
+	printf("[OK][process_manager] process_manager with id %d waiting to produce %d elements\n",id,items_to_produce );
+	if(queue_init(belt_size) !=0){
+		fprintf(stderr,"[ERROR][process_manager] There was an error executing process manager with id %d\n", id);
+		return -1;
+	};
 
-
-	queue_init(belt_size);
-
-	pthread_create(&threads[0],NULL, Produce, prod_args);
-	pthread_create(&threads[1],NULL, Consume, cons_args);
+	printf("[OK][process_manager] Belt with id %d has been created with a maximum of %d threads\n", id, items_to_produce);
+	int rp, rc; // return code of thread creation (if not 0, smth is wrong)
+	rp=pthread_create(&threads[0],NULL, Produce, prod_args);
+	rc=pthread_create(&threads[1],NULL, Consume, cons_args);
+	if(rp || rc){
+		fprintf(stderr,"[ERROR][process_manager] There was an error executing process manager with id %d\n", id);
+	}
 	pthread_join(threads[0], NULL);
 	pthread_join(threads[1], NULL);
+	printf("[OK][process_manager] process_manager with id %d has produced %d elements \n",id, items_to_produce);
 	queue_destroy();
 	
 

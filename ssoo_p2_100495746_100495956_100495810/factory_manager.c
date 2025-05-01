@@ -41,10 +41,11 @@ void *belt_wrapper(void *arg){
 	// prepares the arguments for process_manager and handles semaphores
 
 	struct  th_args_fm *args = (struct th_args_fm*) arg;
-	// we make sure only a mximum number may enter at a time
+	// we make sure only a mximum number may enter at a time (with the semaphore)
 	
 	sem_wait(args->semaphore);
 	int result;
+	//start a new process
 	result = process_manager(args->belt.id, args->belt.size, args->belt.items);
 	if (result!=0){
 		fprintf(stderr, "[ERROR][factory_manager] Process with id %d has finished with errors\n",args->belt.id );
@@ -63,28 +64,32 @@ int main (int argc, const char * argv[] ){
 		fprintf(stderr, "[ERROR][factory_manager] Invalid file.\n");
 		return -1;
 	}
-
 	int max_concurrent;
 	int count =0;
-	
 	fscanf(f, "%d", &max_concurrent);
-	struct belt_info*  old_belts = malloc(sizeof(struct belt_info));
-
-	// belts[max_concurrent];
 	
+	int capacity = 1;
+	// we only know the size after reading the file, so we need to make it dynamic
+	struct belt_info* old_belts = malloc(capacity * sizeof(struct belt_info));
 
 	// we read 3 by three
-	while (fscanf(f, "%d %d %d", &id, &size, &items)==3){
+	while (fscanf(f, "%d %d %d", &id, &size, &items) == 3) {
+		if (count == capacity) {
+			// duplicating memory might spend more memory but it is faster than adding one by one each time
+			capacity *= 2;
+			//I have been told that realloc is costly, so i have decided to do it this other way
+			struct belt_info* new_belts = malloc(capacity * sizeof(struct belt_info)); // "enlarge" the reserved space
+			memcpy(new_belts, old_belts, count * sizeof(struct belt_info)); // put the previous info in the new enlarged empty space
+			free(old_belts);
+			old_belts = new_belts; // update the pointer
+		}
+
 		old_belts[count].id = id;
 		old_belts[count].size = size;
 		old_belts[count].items = items;
 		count++;
-		// dynamic memory, we dont know how many belts until we read them
-		struct belt_info*  new_belts = malloc(count * sizeof(struct belt_info));
-		memcpy(new_belts, old_belts, count*sizeof(struct belt_info));
-		free(old_belts);
-		old_belts = new_belts;
 	}
+
 	
 
 	// int process_manager (int id, int belt_size, int items_to_produce )
@@ -107,6 +112,7 @@ int main (int argc, const char * argv[] ){
 	}
 	
 	for (int i =0; i<count; i++){
+		//end the threads
 		pthread_join(threads[i],NULL );
 		printf("[OK][factory_manager] process_manager with id %d has finished\n", old_belts[i].id);
 	}

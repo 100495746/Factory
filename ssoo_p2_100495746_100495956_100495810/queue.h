@@ -1,17 +1,33 @@
-#ifndef HEADER_FILE
-#define HEADER_FILE
+#ifndef QUEUE_H
+#define QUEUE_H
 
+#include <pthread.h>
+
+// Structure to hold an element in the queue
 struct element {
-  int num_edition;
-  int id_belt;
-  int last;
+    int num_edition;
+    int id_belt;
+    int last;
 };
 
-int queue_init (int size);
-int queue_destroy (void);
-int queue_put (struct element* elem);
-struct element * queue_get(void);
-int queue_empty (void);
-int queue_full(void);
+// Structure representing the queue itself
+struct queue {
+    struct element* elements;
+    int size;
+    int head;
+    int tail;
+    int count;
+    pthread_mutex_t mutex;
+    pthread_cond_t not_full;
+    pthread_cond_t not_empty;
+};
 
-#endif
+// Function declarations
+int queue_init(struct queue* q, int size);
+int queue_destroy(struct queue* q);
+int queue_put(struct queue* q, struct element* elem);
+struct element* queue_get(struct queue* q);
+int queue_empty(struct queue* q);
+int queue_full(struct queue* q);
+
+#endif // QUEUE_H

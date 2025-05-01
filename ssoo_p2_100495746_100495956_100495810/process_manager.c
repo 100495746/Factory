@@ -14,32 +14,18 @@
 #include "process_manager.h"
 #include <semaphore.h>
 
-#define NUM_THREADS 2
+#define NUM_THREADS 2 //one consumer and one producer per belt
 
-struct th_args_pm{
-		int belt_id;
-		int to_produce;
-		int is_producer;
-	};
-
-//Thread function
-/*void *PrintHello(void *threadid)
-{
-   	long tid;
-   	tid = (long)threadid;
-   	printf("Hello World! It's me, thread #%ld!\n", tid);
-	printf("Thread #%ld ends\n", tid);
-   	pthread_exit(0);
-}*/
 
 void *Produce(void *arg){
 	struct th_args_pm *args = (struct th_args_pm*) arg;
 	for (int i = 0; i < args->to_produce; i++) {
-		struct element elem;
-		elem.num_edition = i;
+		struct element elem = {0}; // to initialize before giving it as argument, it deactivates warnings
+		elem.num_edition = i; // a "personal" id for the element
 		elem.id_belt = args->belt_id;
 		elem.last = (i == args->to_produce - 1) ? 1 : 0; // last if there are no more
-		queue_put(&elem);
+		//printf("[DEBUG][Produce] Sending item %d to belt %d\n", i, args->belt_id);
+		queue_put(args->q,&elem);
 	}
 	free(arg); 
 	pthread_exit(NULL);
@@ -49,16 +35,18 @@ void *Produce(void *arg){
 void *Consume(void *arg){
 	struct th_args_pm *args = (struct th_args_pm*) arg;
 	for (int i = 0; i < args->to_produce; i++) {
-		//struct element* elem = queue_get();
-		queue_get();
+		//printf("[DEBUG][Consume] Waiting to receive item %d from belt %d\n", i, args->belt_id);		
+		struct element* elem = queue_get(args->q);
+		free(elem); // we "consume" the elem, which was a struct with allocated memory we need to free
 	}
-
 	free(arg);
 	pthread_exit(NULL);
 }
 
-
 int process_manager (int id, int belt_size, int items_to_produce ){
+	//printf("[DEBUG] Producer will create %d elements on belt %d\n", items_to_produce, id);
+	//printf("[DEBUG] Consumer will expect %d elements on belt %d\n", items_to_produce, id);
+
 	pthread_t threads[NUM_THREADS]; //1 prod, 1 cons
    	//long t; // numbers the thread (thread id)
 	if (id <= 0 || belt_size <= 0 || items_to_produce <= 0) {
@@ -66,70 +54,41 @@ int process_manager (int id, int belt_size, int items_to_produce ){
 		return -1;
 	}
 
-	
-
 	//using the definded struct/function in queue.c
-	//struct element * elemento = NULL;
-	//queue_empty();	
 	
-	struct th_args_pm *prod_args = malloc(sizeof(struct th_args_pm));
-	if(prod_args == NULL){
+	struct queue q; // create a queue as belt
+	if(queue_init(&q, belt_size) !=0){
+		fprintf(stderr,"[ERROR][process_manager] There was an error executing process manager with id %d\n", id);
+		return -1;
+	};
+	printf("[OK][process_manager] Belt with id %d has been created with a maximum of %d threads\n", id, items_to_produce);
+	
+	// these arguments need to be pointers, so as to not create copies
+	struct th_args_pm *args = malloc(sizeof(struct th_args_pm));
+	if(args == NULL){
 		fprintf(stderr,"[ERROR][process_manager] There was an error executing process manager with id %d\n", id);
 		return -1;
 	}
 	printf("[OK][process_manager] Process with id %d waiting to produce %d elements\n", id, items_to_produce);
-	prod_args->belt_id = id;
-	prod_args->to_produce = items_to_produce;
-	prod_args->is_producer = 1;
 
-	struct th_args_pm *cons_args = malloc(sizeof(struct th_args_pm));
-	if(cons_args == NULL){
-		fprintf(stderr,"[ERROR][process_manager] There was an error executing process manager with id %d\n", id);
-		return -1;
-	}
-	cons_args->belt_id = id;
-	cons_args->to_produce = items_to_produce;
-	cons_args->is_producer = 0;
+	//prepare the struct that will be sent to produce/consume
+	args->belt_id = id;
+	args->to_produce = items_to_produce;
+	args->is_producer = 1;
+	args->q = &q;
+	
 	printf("[OK][process_manager] process_manager with id %d waiting to produce %d elements\n",id,items_to_produce );
-	if(queue_init(belt_size) !=0){
-		fprintf(stderr,"[ERROR][process_manager] There was an error executing process manager with id %d\n", id);
-		return -1;
-	};
-
-	printf("[OK][process_manager] Belt with id %d has been created with a maximum of %d threads\n", id, items_to_produce);
 	int rp, rc; // return code of thread creation (if not 0, smth is wrong)
-	rp=pthread_create(&threads[0],NULL, Produce, prod_args);
-	rc=pthread_create(&threads[1],NULL, Consume, cons_args);
+	rp=pthread_create(&threads[0],NULL, Produce, args);
+	args->is_producer = 0;
+	rc=pthread_create(&threads[1],NULL, Consume, args);
 	if(rp || rc){
 		fprintf(stderr,"[ERROR][process_manager] There was an error executing process manager with id %d\n", id);
 	}
 	pthread_join(threads[0], NULL);
 	pthread_join(threads[1], NULL);
 	printf("[OK][process_manager] process_manager with id %d has produced %d elements \n",id, items_to_produce);
-	queue_destroy();
+	queue_destroy(&q);
 	
-
-	//printf("Hello! I am the process manager and I have %d minions.\n", NUM_THREADS);
-
-	/*for(t=0;t<NUM_THREADS;t++){
-     		//printf("Creating thread %ld\n", t);
-		
-		launching a thread
-     		rc = pthread_create(&threads[t], NULL, PrintHello, (void *)t);
-     		
-		if (rc){
-       			printf("ERROR; return code from pthread_create() is %d\n", rc);
-       			exit(-1);
-       		}
-     	}
-
-	int i = 0;
-	for(i = 0; i < NUM_THREADS; i++)
-	{	
-		pthread_join(threads[i], NULL);
-	}
-	printf("Fin process manager\n");*/
-
-   	/* Last thing that main() should do */
    	return(0);
 }

@@ -64,24 +64,35 @@ int process_manager (int id, int belt_size, int items_to_produce ){
 	printf("[OK][process_manager] Belt with id %d has been created with a maximum of %d threads\n", id, items_to_produce);
 	
 	// these arguments need to be pointers, so as to not create copies
-	struct th_args_pm *args = malloc(sizeof(struct th_args_pm));
-	if(args == NULL){
+	struct th_args_pm *prod_args = malloc(sizeof(struct th_args_pm));
+	if(prod_args == NULL){
 		fprintf(stderr,"[ERROR][process_manager] There was an error executing process manager with id %d\n", id);
 		return -1;
 	}
 	printf("[OK][process_manager] Process with id %d waiting to produce %d elements\n", id, items_to_produce);
 
 	//prepare the struct that will be sent to produce/consume
-	args->belt_id = id;
-	args->to_produce = items_to_produce;
-	args->is_producer = 1;
-	args->q = &q;
+	prod_args->belt_id = id;
+	prod_args->to_produce = items_to_produce;
+	prod_args->is_producer = 1;
+	prod_args->q = &q;
 	
+	struct th_args_pm *cons_args = malloc(sizeof(struct th_args_pm));
+	if(cons_args == NULL){
+		fprintf(stderr,"[ERROR][process_manager] There was an error executing process manager with id %d\n", id);
+		return -1;
+	}
+	printf("[OK][process_manager] Process with id %d waiting to produce %d elements\n", id, items_to_produce);
+
+	//prepare the struct that will be sent to produce/consume
+	cons_args->belt_id = id;
+	cons_args->to_produce = items_to_produce;
+	cons_args->is_producer = 0;
+	cons_args->q = &q;
 	printf("[OK][process_manager] process_manager with id %d waiting to produce %d elements\n",id,items_to_produce );
 	int rp, rc; // return code of thread creation (if not 0, smth is wrong)
-	rp=pthread_create(&threads[0],NULL, Produce, args);
-	args->is_producer = 0;
-	rc=pthread_create(&threads[1],NULL, Consume, args);
+	rp=pthread_create(&threads[0],NULL, Produce, prod_args);
+	rc=pthread_create(&threads[1],NULL, Consume, cons_args);
 	if(rp || rc){
 		fprintf(stderr,"[ERROR][process_manager] There was an error executing process manager with id %d\n", id);
 	}

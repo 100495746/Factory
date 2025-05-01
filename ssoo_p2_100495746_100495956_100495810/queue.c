@@ -32,7 +32,7 @@ int queue_init(struct queue *q, int size_param){
 int queue_put(struct queue *q, struct element* elem) {
 	pthread_mutex_lock(&q->mutex); // lock for race conditions
 	while (queue_full(q)){
-		printf("[DEBUG][queue] Waiting: queue is empty...\n");
+		///printf("[DEBUG][queue] Waiting: queue is empty...\n");
 		pthread_cond_wait(&q->not_full, &q->mutex);
 	}
 	q->elements[q->tail] = *elem;

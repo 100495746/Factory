@@ -12,7 +12,7 @@
 #include <semaphore.h>
 #include <sys/stat.h>
 #include <pthread.h>
-#include "process_manager.c"
+#include "process_manager.h"
 //format: <max_concurrent_belts> [<belt_id> <belt_size> <num_items>]...
 //ex: 4 5 5 2 1 2 3 3 5 2
 /*

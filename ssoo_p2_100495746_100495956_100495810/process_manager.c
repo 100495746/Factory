@@ -11,6 +11,7 @@
 #include <stddef.h>
 #include <pthread.h>
 #include "queue.h"
+#include "process_manager.h"
 #include <semaphore.h>
 
 #define NUM_THREADS 2

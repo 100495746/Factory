@@ -3,14 +3,12 @@
 
 #include <pthread.h>
 
-// Structure to hold an element in the queue
 struct element {
     int num_edition;
     int id_belt;
     int last;
 };
 
-// Structure representing the queue itself
 struct queue {
     struct element* elements;
     int size;
@@ -22,7 +20,6 @@ struct queue {
     pthread_cond_t not_empty;
 };
 
-// Function declarations
 int queue_init(struct queue* q, int size);
 int queue_destroy(struct queue* q);
 int queue_put(struct queue* q, struct element* elem);
@@ -30,4 +27,4 @@ struct element* queue_get(struct queue* q);
 int queue_empty(struct queue* q);
 int queue_full(struct queue* q);
 
-#endif // QUEUE_H
+#endif
